@@ -30,7 +30,9 @@ mongoose
         logger.error('Error connecting to MongoDB:', err);});
 
 //connect to redis
-const redisClient = new Redis(process.env.REDIS_URL);
+const redisClient = new Redis(process.env.REDIS_URL,{
+    tls:{}
+});
 redisClient.on('connect', () => {
     logger.info('Connected to Redis');
 });
