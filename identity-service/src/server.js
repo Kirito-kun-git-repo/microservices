@@ -37,12 +37,12 @@ mongoose
 //      port: process.env.REDIS_PORT,
 //      password: process.env.REDIS_PASSWORD,
 // });
-// const redisClient = new Redis({
-//    url : process.env.REDIS_URL
-// })
-const redisClient=createClient({
-    url:process.env.REDIS_URL
-});
+const redisClient = new Redis({
+   url : process.env.REDIS_URL
+})
+// const redisClient=createClient({
+//     url:process.env.REDIS_URL
+// });
 redisClient.on('connect', () => {
     logger.info('Connected to Redis');
 });
@@ -182,7 +182,7 @@ app.use(errorHandler);
 // );
 const startServer = async () => {
   try {
-    await redisClient.connect(); // 🔑 required
+    // await redisClient.connect(); // 🔑 required
 
     logger.info("Connected to Redis");
 
