@@ -11,6 +11,8 @@ const {rateLimit}=require('express-rate-limit');
 const {RedisStore}=require('rate-limit-redis');
 const identityroutes=require('./routes/identity-service');
 const errorHandler = require('./middleware/errorHandler');
+const { createClient } = require('redis');
+
 
 
 
@@ -30,12 +32,23 @@ mongoose
         logger.error('Error connecting to MongoDB:', err);});
 
 //connect to redis
-const redisClient = new Redis(process.env.REDIS_URL,{
-    tls:{}
+// const redisClient=new Redis({
+//      host: process.env.REDIS_HOST,
+//      port: process.env.REDIS_PORT,
+//      password: process.env.REDIS_PASSWORD,
+// });
+// const redisClient = new Redis({
+//    url : process.env.REDIS_URL
+// })
+const redisClient=createClient({
+    url:process.env.REDIS_URL
 });
 redisClient.on('connect', () => {
     logger.info('Connected to Redis');
 });
+redisClient.on('error', (err) => {
+    logger.error('Error connecting to Redis:', err);
+})
 
 
 
@@ -60,46 +73,130 @@ const rateLimiter = new  RateLimiterRedis({
     points: 5, // 5 requests
     duration: 1, // per minute
 })
-app.use((req, res, next) => {
-    rateLimiter.consume(req.ip)
-        .then(() => next())
-        .catch(() => {
-            logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
-            res.status(429).json({ message: 'Too many requests, please try again later.' });
-        });
-    });
+// app.use((req, res, next) => {
+//     rateLimiter.consume(req.ip)
+//         .then(() => next())
+//         .catch(() => {
+//             logger.warn(`Rate limit exceeded for IP: ${req.ip}`);
+//             res.status(429).json({ message: 'Too many requests, please try again later.' });
+//         });
+//     });
 
 
 
 //Ip based rate limiting for sensitive routes/endpoints
-const sensitiveRateLimiter =rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max :50,
-    standardHeaders:true,
-    legacyHeaders:false,
-    handler : (req, res) => {
-        logger.warn(`Sensitive endpoint rate limit exceeded for ip: ${req.ip}`);
-        res.status(429).json({message: 'Too many requests, please try again later.'});
+// const sensitiveRateLimiter =rateLimit({
+//     windowMs: 1*30*1000, // 15 minutes
+//     max :1,
+//     standardHeaders:true,
+//     legacyHeaders:false,
+//     handler : (req, res) => {
+//         logger.warn(`Sensitive endpoint rate limit exceeded for ip: ${req.ip}`);
+//         res.status(429).json({message: 'Too many requests, please try again later.'});
         
-    },
-    store: new RedisStore({
-        sendCommand: (...args) => redisClient.call(...args),
-    }),
-});
+//     },
+//     store: new RedisStore({
+//         sendCommand: async (...args) => redisClient.sendCommand(args),
+//     }),
+// });
 
-//apply this to sensitive routes/endpoints
-app.use('/api/sensitive', sensitiveRateLimiter);
+
+
+
+
+
+
+
+
+
+// const sensitiveRateLimiter = rateLimit({
+//   windowMs: 30 * 1000, // 30s
+//   max: 1,
+//   standardHeaders: true,
+//   legacyHeaders: false,
+//   store: new RedisStore({
+//     sendCommand: (...args) => redisClient.sendCommand(args),
+//   }),
+// });
+
+
+
+
+
+
+
+// // apply this to sensitive routes/endpoints
+// app.use('/api/sensitive', sensitiveRateLimiter);
+
+
+// const sensitiveRateLimiter = new RateLimiterRedis({
+//   storeClient: redisClient,
+//   keyPrefix: 'sensitive',
+//   points: 10000, // 1000 request
+//   duration: 30, // per 30 seconds
+// });
+
+// app.use(async (req, res, next) => {
+//   try {
+//     await sensitiveRateLimiter.consume(req.ip);
+//     next();
+//   } catch {
+//     logger.warn(`Sensitive endpoint rate limit exceeded for ip: ${req.ip}`);
+//     res.status(429).json({ message: 'Too many requests, please try again later.' });
+//   }
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+logger.info("sensitive route applied");
 
 //routes
-app.use('/api/auth', identityroutes);
+app.use('/api/auth', (req, res, next) => {
+  logger.info("➡️ Entering /api/auth routes");
+  next();
+}, identityroutes);
+
+logger.info("auth route applied");
 //
 //error handling middleware
 
 app.use(errorHandler);
-app.listen(process.env.PORT || 3001, () => {
-    logger.info(`Server is running on port ${process.env.PORT || 3001}`);
-}
-);
+// app.listen(process.env.PORT || 3001, () => {
+//     logger.info(`Server is running on port ${process.env.PORT || 3001}`);
+// }
+// );
+const startServer = async () => {
+  try {
+    await redisClient.connect(); // 🔑 required
+
+    logger.info("Connected to Redis");
+
+    app.listen(process.env.PORT || 3001, () => {
+      logger.info(`Server is running on port ${process.env.PORT || 3001}`);
+    });
+  } catch (err) {
+    logger.error("Error starting server:", err);
+    process.exit(1);
+  }
+};
+
+startServer();
+
 
 //unhandled promise rejections
 process.on('unhandledRejection', (reason, promise) => {
