@@ -66,6 +66,7 @@ const proxyOptions = {
 //setting up proxy for identity service
 app.use('/v1/auth',proxy(process.env.IDENTITY_SERVICE_URL, {
     ...proxyOptions,
+      https: true,
     proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
         proxyReqOpts.headers['Content-Type'] = "application/json";
         return proxyReqOpts;
@@ -81,6 +82,7 @@ app.use('/v1/auth',proxy(process.env.IDENTITY_SERVICE_URL, {
 //setting up proxy for Post-service
 app.use('/v1/posts',validateToken,proxy(process.env.POST_SERVICE_URL,{
     ...proxyOptions,
+     https: true,
     proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
         proxyReqOpts.headers['Content-Type'] = "application/json";
         proxyReqOpts.headers['x-user-id'] = srcReq.user.userId; // Attach user ID from token
@@ -96,6 +98,7 @@ app.use('/v1/posts',validateToken,proxy(process.env.POST_SERVICE_URL,{
 //setting up proxy for media service
 app.use('/v1/media', validateToken, proxy(process.env.MEDIA_SERVICE_URL, {
     ...proxyOptions,
+     https: true,
     proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
         proxyReqOpts.headers['x-user-id'] = srcReq.user.userId;
         if(!srcReq.headers['content-type'].startsWith('multipart/form-data')) {
@@ -114,6 +117,7 @@ app.use('/v1/media', validateToken, proxy(process.env.MEDIA_SERVICE_URL, {
 //setting up proxy for search service
 app.use('/v1/search',validateToken,proxy(process.env.SEARCH_SERVICE_URL,{
     ...proxyOptions,
+     https: true,
     proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
         proxyReqOpts.headers['Content-Type'] = "application/json";
         proxyReqOpts.headers['x-user-id'] = srcReq.user.userId; // Attach user ID from token
