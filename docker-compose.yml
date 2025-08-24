@@ -44,14 +44,14 @@ services:
   media-service:
    build:
       context: ./media-service
-  ports:
+   ports: 
      - "3003:3003"
-  env_file:
+   env_file:
      - "./media-service/.env"
-  depends_on:
+   depends_on:
      - redis
      - rabbitmq
-  environment:
+   environment:
      - REDIS_URL=redis://redis:6379
      - RABBITMQ_URL=amqp://rabbitmq:5672
 
